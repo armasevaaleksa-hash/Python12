@@ -1,105 +1,79 @@
-# Імпорт необхідних бібліотек
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
 from ucimlrepo import fetch_ucirepo
 
-# --- Етап 1: Завантаження даних ---
-# Замініть 'ID_ДАТАСЕТУ' на ID обраного вами набору даних з UCI Machine Learning Repository.
-# Посилання на репозиторій: https://archive.ics.uci.edu/ml/index.php
-dataset = fetch_ucirepo(id=0) # Замініть 0 на ваш ID
+#Завантаження даних (ID 292 - Wholesale customers)
+print('=== 1. ЗАГРУЗКА ДАННЫХ ===')
+wholesale_customers = fetch_ucirepo(id=292)
+X = wholesale_customers.data.features
+y = wholesale_customers.data.targets
 
-# Отримання даних та цільової змінної
-X = dataset.data.features
-y = dataset.data.targets
-
-# Створення єдиного DataFrame (якщо потрібно)
-# Можливо, вам доведеться налаштувати цей крок залежно від структури вашого датасету
-if y is not None:
-    df = pd.concat([X, y], axis=1)
+#Об'єднуємо ознаки та цільові змінні в єдиний DataFrame
+if y is not None and not y.empty:
+  df = pd.concat([X, y], axis=1)
 else:
-    df = X
+  df = X
 
-print("Назви стовпців:")
-print(df.columns)
-
-# --- Етап 2: Ознайомлення з даними ---
-
-# Виведення метаданих
-print("\nМетадані:")
-print(dataset.metadata)
-
-# Виведення інформації про змінні
-print("\nІнформація про змінні:")
-print(dataset.variables)
-
-# Виведення перших 5 рядків датасету
-print("\nПерші 5 рядків:")
+#Аналіз даних (вивід базової інформації)
+print('\n=== 2. АНАЛИЗ ДАННЫХ ===')
+print('Метадані:')
+print(wholesale_customers.metadata)
+print('\nПерші 5 рядків датасету:')
 print(df.head())
-
-# Виведення основних статистичних характеристик
-print("\nОписова статистика:")
+print('\nОписова статистика:')
 print(df.describe())
 
+#Побудова та збереження 4 різних графіків
 
-# --- Етап 3: Побудова графіків ---
-
-# Важливо: Замініть 'column_name', 'x_column', 'y_column' тощо на реальні назви стовпців з вашого датасету.
-
-# 1. Гістограма
-# Дозволяє побачити розподіл значень однієї числової змінної.
-plt.figure(figsize=(10, 6))
-sns.histplot(df['column_name'], bins=30, kde=True)
-plt.title('Назва гістограми')
-plt.xlabel('Назва осі X')
+#Гістограма витрат на свіжі продукти (Fresh)
+plt.figure(figsize=(8, 6))
+sns.histplot(df['Fresh'], bins=20, kde=True, color='green')
+plt.title('Розподіл річних витрат на свіжі продукти (Fresh)')
+plt.xlabel('Витрати (грошові одиниці)')
 plt.ylabel('Частота')
-plt.savefig('histogram.png')
-# plt.show() # Розкоментуйте, якщо хочете побачити графік одразу
+plt.savefig('histogram_wholesale.png')
+plt.close()
 
-# 2. Діаграма розсіювання (Scatter plot)
-# Показує залежність між двома числовими змінними.
+#Діаграма розсіювання (Milk vs Grocery)
+plt.figure(figsize=(8, 6))
+sns.scatterplot(
+    x='Milk',
+    y='Grocery',
+    hue='Channel' if 'Channel' in df.columns else None,
+    data=df,
+    palette='Set1',
+)
+plt.title('Залежність між витратами на молоко та бакалію')
+plt.xlabel('Молоко (Milk)')
+plt.ylabel('Бакалія (Grocery)')
+plt.legend(title='Канал збуту')
+plt.savefig('scatterplot_wholesale.png')
+plt.close()
+
+#Ящик з вусами (Box plot) для порівняння витрат за категоріями
 plt.figure(figsize=(10, 6))
-sns.scatterplot(data=df, x='x_column', y='y_column', hue='category_column') # hue - для розфарбовування за категоріями
-plt.title('Назва діаграми розсіювання')
-plt.xlabel('Назва осі X')
-plt.ylabel('Назва осі Y')
-plt.legend(title='Категорії')
-plt.savefig('scatterplot.png')
-# plt.show()
+cols_to_box = [
+    c
+    for c in ['Fresh', 'Milk', 'Grocery', 'Frozen', 'Detergents_Paper']
+    if c in df.columns
+]
+sns.boxplot(data=df[cols_to_box], palette='Set3')
+plt.title('Порівняння витрат за категоріями товарів')
+plt.xlabel('Категорія товару')
+plt.ylabel('Витрати (му)')
+plt.savefig('boxplot_wholesale.png')
+plt.close()
 
-# 3. Стовпчикова діаграма (Bar plot)
-# Порівнює середнє значення числової змінної для різних категорій.
-plt.figure(figsize=(10, 6))
-sns.barplot(data=df, x='category_column', y='value_column')
-plt.title('Назва стовпчикової діаграми')
-plt.xlabel('Категорії')
-plt.ylabel('Середнє значення')
-plt.xticks(rotation=45) # Поворот підписів на осі X для кращої читабельності
-plt.savefig('barplot.png')
-# plt.show()
-
-# 4. Ящик з вусами (Box plot)
-# Показує розподіл даних, медіану, квартилі та викиди.
-plt.figure(figsize=(10, 6))
-sns.boxplot(data=df, x='category_column', y='value_column')
-plt.title('Назва "Ящика з вусами"')
-plt.xlabel('Категорії')
-plt.ylabel('Значення')
-plt.savefig('boxplot.png')
-# plt.show()
-
-# 5. Теплова карта кореляцій (Heatmap)
-# Візуалізує матрицю кореляцій між числовими змінними.
-plt.figure(figsize=(12, 8))
-# Обчислюємо кореляційну матрицю тільки для числових стовпців
-numeric_df = df.select_dtypes(include=['number'])
-correlation_matrix = numeric_df.corr()
+#теплова карта кореляцій (Heatmap)
+plt.figure(figsize=(8, 6))
+correlation_matrix = df.select_dtypes(include=['number']).corr()
 sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f')
-plt.title('Теплова карта кореляцій')
-plt.savefig('heatmap.png')
-# plt.show()
+plt.title('Теплова карта кореляцій витрат оптових клієнтів')
+plt.savefig('heatmap_wholesale.png')
+plt.close()
 
-print("\nГрафіки збережено у файли .png")
-
-# --- Етап 4: Заповнення звіту ---
-# Не забудьте додати збережені графіки та ваші висновки у файл REPORT.md!
+print(
+    '\nУспішно! Усі 4 графіки для датасету Wholesale customers збережено у'
+    ' корінь репозиторію.'
+)
